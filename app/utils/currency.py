@@ -3,7 +3,8 @@ File: currency.py
 Author: Venkat Vellanki
 Created: 2025-03-25
 Last Modified: 2025-03-25
-Description: Service functions for creating, retrieving, updating, and deleting ledger entries.
+Description: Utility function for fetching the latest available USD -> CAD exchange
+             rate from the Treasury API.
 """
 
 import httpx
