@@ -4,7 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.db.session import Base, engine, get_session
+from app.db.session import get_session
+
+from app.routes.entries import router as entries_router
+from app.routes.summary import router as summary_router
 
 import logging
 
@@ -28,6 +31,9 @@ app = FastAPI(
     description="General Ledger API",
     lifespan=lifespan,
 )
+
+app.include_router(entries_router, prefix="/api")
+app.include_router(summary_router, prefix="/api")
 
 
 @app.get("/healthz", tags=["Health"])
