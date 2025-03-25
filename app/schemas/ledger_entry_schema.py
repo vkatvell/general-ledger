@@ -22,11 +22,19 @@ class EntryType(str, Enum):
 
 
 class LedgerEntryBase(BaseModel):
-    account_id: UUID
-    entry_type: EntryType
-    amount: Decimal = Field(..., ge=0)
-    currency: str = "USD"
-    description: Optional[str] = None
+    account_name: str = Field(..., description="Name of the account (e.g., 'Cash')")
+    date: Optional[datetime] = Field(
+        None, description="Ledger transaction date. Defaults to current UTC time."
+    )
+    entry_type: EntryType = Field(..., description="Type of entry: debit or credit")
+    amount: Decimal = Field(..., ge=0, description="Amount (must be ≥ 0)")
+    currency: str = Field(
+        ..., min_length=3, max_length=3, description="Currency code (e.g., 'USD')"
+    )
+    description: Optional[str] = Field(None, description="Optional description")
+    idempotency_key: UUID = Field(
+        ..., description="Idempotency key to prevent duplicates"
+    )
 
 
 class LedgerEntryCreate(LedgerEntryBase):
@@ -40,6 +48,7 @@ class LedgerEntryUpdate(BaseModel):
 
 class LedgerEntryOut(LedgerEntryBase):
     id: UUID
+    account_id: UUID
     created_at: datetime
     updated_at: datetime
     is_deleted: bool

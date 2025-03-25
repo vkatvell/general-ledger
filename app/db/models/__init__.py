@@ -1,5 +1,5 @@
 # app/db/models/__init__.py
-from .account import DBAccount
-from .ledger_entry import DBLedgerEntry
+from .account_model import DBAccount
+from .ledger_entry_model import DBLedgerEntry
 
 __all__ = ["DBAccount", "DBLedgerEntry"]
