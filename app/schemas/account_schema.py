@@ -8,26 +8,30 @@ Description: Pydantic schema definitions for accounts, including models
              Used for input validation and API response serialization.
 """
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from uuid import UUID
 from datetime import datetime
+from typing import Optional, List
 
 
 class AccountBase(BaseModel):
-    name: str
+    name: str = Field(..., description="The name of the account (e.g., 'Cash')")
 
 
 class AccountCreate(AccountBase):
     """Schema for creating a new account."""
 
-    pass
+    is_active: Optional[bool] = Field(
+        default=True, description="Whether the account is active"
+    )
 
 
 class AccountUpdate(BaseModel):
-    """Optional future support for account updates."""
+    """Schema for partially updating an account."""
 
-    name: str
+    name: Optional[str] = Field(None, description="New name for the account")
+    is_active: Optional[bool] = Field(None, description="Set account active/inactive")
 
 
 class AccountOut(AccountBase):
@@ -38,3 +42,9 @@ class AccountOut(AccountBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AccountListResponse(BaseModel):
+    """Schema for listing multiple accounts (e.g. in dropdowns)."""
+
+    accounts: List[AccountOut]
