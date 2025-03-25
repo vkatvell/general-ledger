@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.db.session import get_session
+from app.db.session import get_session, engine
 
 from app.routes.entries import router as entries_router
 from app.routes.summary import router as summary_router
@@ -17,11 +17,8 @@ logging.basicConfig(level=logging.INFO)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manages application startup and shutdown events."""
-    # Startup: create tables
-    logging.info("Starting up... Creating DB tables if needed.")
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
     yield
+    await engine.dispose()  # Close all pooled connections
     logging.info("Shutting down... Lifespan complete.")
 
 
