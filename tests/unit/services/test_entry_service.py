@@ -5,8 +5,13 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 from fastapi import HTTPException
-from app.schemas.ledger_entry_schema import LedgerEntryCreate, EntryType, LedgerEntryOut
-from app.services.entry_service import create_entry
+from app.schemas.ledger_entry_schema import (
+    LedgerEntryCreate,
+    EntryType,
+    LedgerEntryOut,
+    LedgerEntryUpdate,
+)
+from app.services.entry_service import create_entry, get_entry_by_id, update_entry
 from app.db.models import DBAccount, DBLedgerEntry
 
 
@@ -124,3 +129,84 @@ async def test_create_entry_idempotent_conflict(async_mock_db):
 
     assert exc.value.status_code == 409
     assert "Idempotency key already used" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_get_entry_by_id_success(async_mock_db):
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+    entry_id = uuid.uuid4()
+
+    entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.debit,
+        amount=Decimal("100.00"),
+        currency="USD",
+        description="Valid entry",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=False,
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    response = await get_entry_by_id(str(entry_id), async_mock_db)
+
+    assert isinstance(response, LedgerEntryOut)
+    assert response.id == entry.id
+    assert response.account_name == account.name
+    assert response.amount == Decimal("100.00")
+
+
+@pytest.mark.asyncio
+async def test_get_entry_by_id_not_found(async_mock_db):
+    entry_id = uuid.uuid4()
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=None)
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    with pytest.raises(HTTPException) as exc:
+        await get_entry_by_id(str(entry_id), async_mock_db)
+
+    assert exc.value.status_code == 404
+    assert "not found" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_get_entry_by_id_soft_deleted(async_mock_db):
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+    entry_id = uuid.uuid4()
+
+    entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.credit,
+        amount=Decimal("500.00"),
+        currency="USD",
+        description="Soft deleted entry",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=True,  # is_deleted is True, should not get entry
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(
+        return_value=None
+    )  # simulate exclusion from query
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    with pytest.raises(HTTPException) as exc:
+        await get_entry_by_id(str(entry_id), async_mock_db)
+
+    assert exc.value.status_code == 404
