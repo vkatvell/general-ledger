@@ -9,10 +9,12 @@ Description: Handles summarization logic for ledger entries, including debit/cre
 import logging
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
+from datetime import datetime
 
 from app.db.session import get_session
-from app.schemas.summary_schema import SummaryOut
 from app.services.summary_service import get_summary
+from app.schemas.summary_schema import SummaryOut
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +31,10 @@ router = APIRouter(prefix="/summary", tags=["Summary"])
     ),
 )
 async def get_summary_route(
-    account_name: str | None = Query(default=None),
-    currency: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
+    account_name: Optional[str] = Query(default=None),
+    currency: Optional[str] = Query(default=None),
+    start_date: Optional[str] = Query(default=None),
+    end_date: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_session),
 ) -> SummaryOut:
     return await get_summary(
