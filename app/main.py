@@ -6,6 +6,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.db.session import get_session, engine
 
+from app.routes.accounts import router as accounts_router
 from app.routes.entries import router as entries_router
 from app.routes.summary import router as summary_router
 
@@ -29,6 +30,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(accounts_router, prefix="/api")
 app.include_router(entries_router, prefix="/api")
 app.include_router(summary_router, prefix="/api")
 

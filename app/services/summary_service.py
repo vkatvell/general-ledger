@@ -3,7 +3,7 @@ File: summary_service.py
 Author: Venkat Vellanki
 Created: 2025-03-25
 Last Modified: 2025-03-25
-Description: Service functions for retreiving summary of balances for an account.
+Description: Service functions for retreiving summary of balances for all ledger entries.
 """
 
 import logging
@@ -12,7 +12,7 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import DBLedgerEntry, DBAccount
