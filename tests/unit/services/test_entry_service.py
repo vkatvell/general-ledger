@@ -210,3 +210,202 @@ async def test_get_entry_by_id_soft_deleted(async_mock_db):
         await get_entry_by_id(str(entry_id), async_mock_db)
 
     assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_entry_success_amount_and_description(async_mock_db):
+    entry_id = uuid.uuid4()
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.debit,
+        amount=Decimal("100.00"),
+        currency="USD",
+        description="Old description",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=False,
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    async_mock_db.execute = AsyncMock(return_value=result)
+    async_mock_db.commit = AsyncMock()
+    async_mock_db.refresh = AsyncMock(side_effect=lambda e: e)
+
+    update = LedgerEntryUpdate(
+        amount=Decimal("200.00"),
+        description="Updated description",
+    )
+
+    updated = await update_entry(str(entry_id), update, async_mock_db)
+
+    assert updated.amount == Decimal("200.00")
+    assert updated.description == "Updated description"
+    assert updated.version == 2
+    assert updated.account_name == "Cash"
+
+
+@pytest.mark.asyncio
+async def test_update_entry_partial_description_only(async_mock_db):
+    entry_id = uuid.uuid4()
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.credit,
+        amount=Decimal("500.00"),
+        currency="USD",
+        description="Old",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=False,
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    async_mock_db.execute = AsyncMock(return_value=result)
+    async_mock_db.commit = AsyncMock()
+    async_mock_db.refresh = AsyncMock(side_effect=lambda e: e)
+
+    update = LedgerEntryUpdate(
+        amount=None,
+        description="New note only",
+    )
+
+    updated = await update_entry(str(entry_id), update, async_mock_db)
+
+    assert updated.amount == Decimal("500.00")  # unchanged
+    assert updated.description == "New note only"
+    assert updated.version == 2
+
+
+@pytest.mark.asyncio
+async def test_update_entry_not_found(async_mock_db):
+    entry_id = uuid.uuid4()
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=None)
+
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    update = LedgerEntryUpdate(amount=Decimal("100.00"))
+
+    with pytest.raises(HTTPException) as exc:
+        await update_entry(str(entry_id), update, async_mock_db)
+
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_entry_soft_deleted_excluded(async_mock_db):
+    entry_id = uuid.uuid4()
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    soft_deleted_entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.debit,
+        amount=Decimal("100.00"),
+        currency="USD",
+        description="Old",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=True,
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=None)  # filtered out by query
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    update = LedgerEntryUpdate(description="Should not update")
+
+    with pytest.raises(HTTPException) as exc:
+        await update_entry(str(entry_id), update, async_mock_db)
+
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_entry_no_changes_provided(async_mock_db):
+    entry_id = uuid.uuid4()
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.debit,
+        amount=Decimal("500.00"),
+        currency="USD",
+        description="Same",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=False,
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    update = LedgerEntryUpdate()  # nothing to update
+
+    with pytest.raises(HTTPException) as exc:
+        await update_entry(str(entry_id), update, async_mock_db)
+
+    assert exc.value.status_code == 400
+    assert "no fields" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_update_entry_same_data_raises(async_mock_db):
+    entry_id = uuid.uuid4()
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.credit,
+        amount=Decimal("100.00"),
+        currency="USD",
+        description="Original",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=False,
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    update = LedgerEntryUpdate(
+        amount=Decimal("100.00"),  # same
+        description="Original",  # same
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await update_entry(str(entry_id), update, async_mock_db)
+
+    assert exc.value.status_code == 400
+    assert "no changes" in exc.value.detail.lower()

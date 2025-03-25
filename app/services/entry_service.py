@@ -76,16 +76,72 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
 
 
 async def get_entry_by_id(entry_id: str, db: AsyncSession) -> LedgerEntryOut:
-    """Fetch a single ledger entry by ID, excluding soft-deleted records."""
+    """Fetch a single ledger entry by ID, excluding deleted records."""
     result = await db.execute(
         select(DBLedgerEntry)
         .options(joinedload(DBLedgerEntry.account))
         .where(DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False))
     )
-    entry = result.scalar_one_or_none()
+    entry = await result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Ledger entry not found")
     return LedgerEntryOut.model_validate(entry)
+
+
+async def update_entry(
+    entry_id: str, update: LedgerEntryUpdate, db: AsyncSession
+) -> LedgerEntryOut:
+    """Update the amount or description of an existing ledger entry."""
+    if update.amount is None and update.description is None:
+        raise HTTPException(status_code=400, detail="No fields provided to update")
+
+    result = await db.execute(
+        select(DBLedgerEntry).where(
+            DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
+        )
+    )
+    entry = await result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Ledger entry not found")
+
+    # Check if values are unchanged
+    is_same_amount = update.amount == entry.amount or update.amount is None
+    is_same_description = (update.description or "") == (
+        entry.description or ""
+    ) or update.description is None
+
+    if is_same_amount and is_same_description:
+        raise HTTPException(status_code=400, detail="No changes detected in update")
+
+    # Apply changes
+    if update.amount is not None:
+        entry.amount = update.amount
+    if update.description is not None:
+        entry.description = update.description
+    entry.updated_at = datetime.now(timezone.utc)
+    entry.version += 1
+
+    await db.commit()
+    await db.refresh(entry)
+    return LedgerEntryOut.model_validate(entry)
+
+
+async def delete_entry(entry_id: str, db: AsyncSession) -> None:
+    """Soft-delete a ledger entry by marking it as deleted."""
+    result = await db.execute(
+        select(DBLedgerEntry).where(
+            DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
+        )
+    )
+    entry = result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Ledger entry not found")
+
+    entry.is_deleted = True
+    entry.updated_at = datetime.now(timezone.utc)
+    entry.version += 1
+
+    await db.commit()
 
 
 async def list_entries(
@@ -115,46 +171,3 @@ async def list_entries(
     stmt = stmt.order_by(DBLedgerEntry.timestamp.desc()).offset(offset).limit(limit)
     results = (await db.execute(stmt)).scalars().all()
     return [LedgerEntryOut.model_validate(e) for e in results]
-
-
-async def update_entry(
-    entry_id: str, update: LedgerEntryUpdate, db: AsyncSession
-) -> LedgerEntryOut:
-    """Update the amount or description of an existing ledger entry."""
-    result = await db.execute(
-        select(DBLedgerEntry).where(
-            DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
-        )
-    )
-    entry = result.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Ledger entry not found")
-
-    if update.amount is not None:
-        entry.amount = update.amount
-    if update.description is not None:
-        entry.description = update.description
-    entry.updated_at = datetime.now(timezone.utc)
-    entry.version += 1
-
-    await db.commit()
-    await db.refresh(entry)
-    return LedgerEntryOut.model_validate(entry)
-
-
-async def delete_entry(entry_id: str, db: AsyncSession) -> None:
-    """Soft-delete a ledger entry by marking it as deleted."""
-    result = await db.execute(
-        select(DBLedgerEntry).where(
-            DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
-        )
-    )
-    entry = result.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Ledger entry not found")
-
-    entry.is_deleted = True
-    entry.updated_at = datetime.now(timezone.utc)
-    entry.version += 1
-
-    await db.commit()
