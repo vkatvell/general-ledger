@@ -8,11 +8,11 @@ Description: Pydantic schema definitions for ledger entries, including models
              within the general ledger system.
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, StringConstraints
 from uuid import UUID
 from decimal import Decimal
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Annotated, Literal
 from datetime import datetime
 
 
@@ -23,18 +23,24 @@ class EntryType(str, Enum):
 
 class LedgerEntryBase(BaseModel):
     account_name: str = Field(..., description="Name of the account (e.g., 'Cash')")
+
     date: Optional[datetime] = Field(
         None, description="Ledger transaction date. Defaults to current UTC time."
     )
+
     entry_type: EntryType = Field(..., description="Type of entry: debit or credit")
+
     amount: Decimal = Field(..., ge=0, description="Amount (must be ≥ 0)")
-    currency: str = Field(
-        ..., min_length=3, max_length=3, description="Currency code (e.g., 'USD')"
+
+    currency: Literal["USD"] = Field(
+        ..., description="Currency code (only 'USD' supported for now)"
     )
+
     description: Optional[str] = Field(None, description="Optional description")
-    idempotency_key: UUID = Field(
-        ..., description="Idempotency key to prevent duplicates"
-    )
+
+    idempotency_key: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=8, max_length=64)
+    ] = Field(..., description="Idempotency key to prevent duplicate entries")
 
 
 class LedgerEntryCreate(LedgerEntryBase):

@@ -35,17 +35,17 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
             DBAccount.name == entry.account_name, DBAccount.is_active.is_(True)
         )
     )
-    account = await result.scalar_one_or_none()
+    account = result.scalar_one_or_none()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found or inactive")
 
     # Check idempotency key: if an entry with same key already exists
     existing = await db.execute(
         select(DBLedgerEntry).where(
-            DBLedgerEntry.idempotency_key == entry.idempotency_key
+            DBLedgerEntry.idempotency_key == str(entry.idempotency_key)
         )
     )
-    existing_entry = await existing.scalar_one_or_none()
+    existing_entry = existing.scalar_one_or_none()
 
     if existing_entry:
         # Strict idempotency enforcement: reject if any data differs
@@ -72,7 +72,7 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
         date=entry.date or datetime.now(timezone.utc),
         idempotency_key=entry.idempotency_key,
     )
-    await db.add(new_entry)
+    db.add(new_entry)
     await db.commit()
     await db.refresh(new_entry)
     return LedgerEntryOut.model_validate(new_entry)

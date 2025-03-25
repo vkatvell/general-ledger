@@ -32,17 +32,17 @@ async def test_create_entry_success(async_mock_db):
         currency="USD",
         description="Initial deposit",
         date=datetime.now(timezone.utc),
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
     )
 
     # Setup account lookup
     account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
     account_result = MagicMock()
-    account_result.scalar_one_or_none = AsyncMock(return_value=account)
+    account_result.scalar_one_or_none.return_value = account
 
     # Setup idempotency check = no duplicate
     idempotency_result = MagicMock()
-    idempotency_result.scalar_one_or_none = AsyncMock(return_value=None)
+    idempotency_result.scalar_one_or_none.return_value = None
 
     async_mock_db.execute = AsyncMock(side_effect=[account_result, idempotency_result])
 
@@ -78,11 +78,11 @@ async def test_create_entry_account_missing(async_mock_db):
         currency="USD",
         description="Ghost account",
         date=datetime.now(timezone.utc),
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
     )
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=None)
+    result.scalar_one_or_none.return_value = None
     async_mock_db.execute = AsyncMock(return_value=result)
 
     with pytest.raises(HTTPException) as exc:
@@ -94,7 +94,7 @@ async def test_create_entry_account_missing(async_mock_db):
 
 @pytest.mark.asyncio
 async def test_create_entry_idempotent_conflict(async_mock_db):
-    key = uuid.uuid4()
+    key = str(uuid.uuid4())
     account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
 
     entry = LedgerEntryCreate(
@@ -109,7 +109,7 @@ async def test_create_entry_idempotent_conflict(async_mock_db):
 
     # Matching account
     account_result = MagicMock()
-    account_result.scalar_one_or_none = AsyncMock(return_value=account)
+    account_result.scalar_one_or_none.return_value = account
 
     # Existing entry with same key but different amount
     existing = DBLedgerEntry(
@@ -128,7 +128,7 @@ async def test_create_entry_idempotent_conflict(async_mock_db):
         account=account,
     )
     existing_result = MagicMock()
-    existing_result.scalar_one_or_none = AsyncMock(return_value=existing)
+    existing_result.scalar_one_or_none.return_value = existing
 
     async_mock_db.execute = AsyncMock(side_effect=[account_result, existing_result])
 
@@ -151,7 +151,7 @@ async def test_get_entry_by_id_success(async_mock_db):
         amount=Decimal("100.00"),
         currency="USD",
         description="Valid entry",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -199,7 +199,7 @@ async def test_get_entry_by_id_soft_deleted(async_mock_db):
         amount=Decimal("500.00"),
         currency="USD",
         description="Soft deleted entry",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -231,7 +231,7 @@ async def test_update_entry_success_amount_and_description(async_mock_db):
         amount=Decimal("100.00"),
         currency="USD",
         description="Old description",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -271,7 +271,7 @@ async def test_update_entry_partial_description_only(async_mock_db):
         amount=Decimal("500.00"),
         currency="USD",
         description="Old",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -326,7 +326,7 @@ async def test_update_entry_soft_deleted_excluded(async_mock_db):
         amount=Decimal("100.00"),
         currency="USD",
         description="Old",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -359,7 +359,7 @@ async def test_update_entry_no_changes_provided(async_mock_db):
         amount=Decimal("500.00"),
         currency="USD",
         description="Same",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -393,7 +393,7 @@ async def test_update_entry_same_data_raises(async_mock_db):
         amount=Decimal("100.00"),
         currency="USD",
         description="Original",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -430,7 +430,7 @@ async def test_delete_entry_success(async_mock_db):
         amount=Decimal("300.00"),
         currency="USD",
         description="To be deleted",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -498,7 +498,7 @@ async def test_list_entries_basic(async_mock_db):
         amount=Decimal("50.00"),
         currency="USD",
         description="Listed",
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
         date=datetime.now(timezone.utc),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
