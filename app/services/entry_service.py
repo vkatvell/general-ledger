@@ -82,7 +82,9 @@ async def get_entry_by_id(entry_id: str, db: AsyncSession) -> LedgerEntryOut:
     """Fetch a single ledger entry by ID, excluding deleted records."""
     stmt = (
         select(DBLedgerEntry)
-        .options(selectinload(DBLedgerEntry.account))  # needed for account_name
+        .options(
+            selectinload(DBLedgerEntry.account)
+        )  # eager loading needed for account_name
         .where(DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False))
     )
     result = await db.execute(stmt)
@@ -101,22 +103,30 @@ async def update_entry(
     if update.amount is None and update.description is None:
         raise HTTPException(status_code=400, detail="No fields provided to update")
 
-    result = await db.execute(
-        select(DBLedgerEntry).where(
-            DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
-        )
+    stmt = (
+        select(DBLedgerEntry)
+        .options(
+            selectinload(DBLedgerEntry.account)
+        )  # eager loading needed for account_name
+        .where(DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False))
     )
-    entry = await result.scalar_one_or_none()
+    result = await db.execute(stmt)
+    entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Ledger entry not found")
 
-    # Check if values are unchanged
-    is_same_amount = update.amount == entry.amount or update.amount is None
-    is_same_description = (update.description or "") == (
-        entry.description or ""
-    ) or update.description is None
+    # Check if any actual change is being made
+    changes_detected = False
 
-    if is_same_amount and is_same_description:
+    if update.amount is not None and update.amount != entry.amount:
+        changes_detected = True
+
+    if update.description is not None and (update.description or "") != (
+        entry.description or ""
+    ):
+        changes_detected = True
+
+    if not changes_detected:
         raise HTTPException(status_code=400, detail="No changes detected in update")
 
     # Apply changes

@@ -241,7 +241,7 @@ async def test_update_entry_success_amount_and_description(async_mock_db):
     )
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    result.scalar_one_or_none = MagicMock(return_value=entry)
     async_mock_db.execute = AsyncMock(return_value=result)
     async_mock_db.commit = AsyncMock()
     async_mock_db.refresh = AsyncMock(side_effect=lambda e: e)
@@ -281,7 +281,7 @@ async def test_update_entry_partial_description_only(async_mock_db):
     )
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    result.scalar_one_or_none = MagicMock(return_value=entry)
     async_mock_db.execute = AsyncMock(return_value=result)
     async_mock_db.commit = AsyncMock()
     async_mock_db.refresh = AsyncMock(side_effect=lambda e: e)
@@ -302,7 +302,7 @@ async def test_update_entry_partial_description_only(async_mock_db):
 async def test_update_entry_not_found(async_mock_db):
     entry_id = uuid.uuid4()
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=None)
+    result.scalar_one_or_none = MagicMock(return_value=None)
 
     async_mock_db.execute = AsyncMock(return_value=result)
 
@@ -336,7 +336,7 @@ async def test_update_entry_soft_deleted_excluded(async_mock_db):
     )
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=None)  # filtered out by query
+    result.scalar_one_or_none = MagicMock(return_value=None)  # filtered out by query
     async_mock_db.execute = AsyncMock(return_value=result)
 
     update = LedgerEntryUpdate(description="Should not update")
@@ -369,7 +369,7 @@ async def test_update_entry_no_changes_provided(async_mock_db):
     )
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    result.scalar_one_or_none = MagicMock(return_value=entry)
     async_mock_db.execute = AsyncMock(return_value=result)
 
     update = LedgerEntryUpdate()  # nothing to update
@@ -403,7 +403,7 @@ async def test_update_entry_same_data_raises(async_mock_db):
     )
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    result.scalar_one_or_none = MagicMock(return_value=entry)
     async_mock_db.execute = AsyncMock(return_value=result)
 
     update = LedgerEntryUpdate(
