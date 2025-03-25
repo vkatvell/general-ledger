@@ -168,10 +168,10 @@ async def list_entries(
     if entry_type:
         stmt = stmt.where(DBLedgerEntry.entry_type == entry_type)
     if start_date:
-        stmt = stmt.where(DBLedgerEntry.timestamp >= start_date)
+        stmt = stmt.where(DBLedgerEntry.date >= start_date)
     if end_date:
-        stmt = stmt.where(DBLedgerEntry.timestamp <= end_date)
+        stmt = stmt.where(DBLedgerEntry.date <= end_date)
 
-    stmt = stmt.order_by(DBLedgerEntry.timestamp.desc()).offset(offset).limit(limit)
+    stmt = stmt.order_by(DBLedgerEntry.date.desc()).offset(offset).limit(limit)
     results = (await db.execute(stmt)).scalars().all()
     return [LedgerEntryOut.model_validate(e) for e in results]

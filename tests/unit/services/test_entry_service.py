@@ -17,6 +17,7 @@ from app.services.entry_service import (
     get_entry_by_id,
     update_entry,
     delete_entry,
+    list_entries,
 )
 from app.db.models import DBAccount, DBLedgerEntry
 
@@ -484,3 +485,65 @@ async def test_delete_entry_already_deleted(async_mock_db):
         await delete_entry(str(entry_id), async_mock_db)
 
     assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_list_entries_basic(async_mock_db):
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    entry = DBLedgerEntry(
+        id=uuid.uuid4(),
+        account_id=account.id,
+        entry_type=EntryType.debit,
+        amount=Decimal("50.00"),
+        currency="USD",
+        description="Listed",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=False,
+        version=1,
+        account=account,
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalars = MagicMock(
+        return_value=MagicMock(all=MagicMock(return_value=[entry]))
+    )
+    async_mock_db.execute = AsyncMock(return_value=mock_result)
+
+    entries = await list_entries(
+        db=async_mock_db,
+        account_name="Cash",
+        currency="USD",
+        entry_type="debit",
+        start_date=None,
+        end_date=None,
+        limit=10,
+        offset=0,
+    )
+
+    assert isinstance(entries, list)
+    assert len(entries) == 1
+    assert entries[0].account_name == "Cash"
+    assert entries[0].amount == Decimal("50.00")
+
+
+@pytest.mark.asyncio
+async def test_list_entries_empty_result(async_mock_db):
+    mock_result = MagicMock()
+    mock_result.scalars = MagicMock(
+        return_value=MagicMock(all=MagicMock(return_value=[]))
+    )
+    async_mock_db.execute = AsyncMock(return_value=mock_result)
+
+    entries = await list_entries(
+        db=async_mock_db,
+        account_name="Ghost",
+        currency="EUR",
+        entry_type="credit",
+    )
+
+    assert isinstance(entries, list)
+    assert entries == []
