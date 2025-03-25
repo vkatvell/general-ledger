@@ -23,8 +23,16 @@ async def seed(reset: bool = False):
         # Create sample accounts
         accounts = [
             DBAccount(name="Cash", is_active=True),
-            DBAccount(name="Sales Revenue", is_active=True),
+            DBAccount(name="Bank", is_active=True),
             DBAccount(name="Accounts Receivable", is_active=True),
+            DBAccount(name="Accounts Payable", is_active=True),
+            DBAccount(name="Sales Revenue", is_active=True),
+            DBAccount(name="Service Revenue", is_active=True),
+            DBAccount(name="Rent Expense", is_active=True),
+            DBAccount(name="Utilities Expense", is_active=True),
+            DBAccount(name="Salaries Expense", is_active=True),
+            DBAccount(name="Office Supplies", is_active=True),
+            DBAccount(name="Equipment", is_active=True),
             DBAccount(
                 name="Suspense", is_active=False
             ),  # Inactive account for edge case testing
@@ -79,7 +87,7 @@ async def seed(reset: bool = False):
 
         session.add_all(entries)
         await session.commit()
-        print("Seeded 4 accounts and 4 ledger entries.")
+        print(f"Seeded {len(accounts)} accounts and {len(entries)} ledger entries.")
 
 
 if __name__ == "__main__":
