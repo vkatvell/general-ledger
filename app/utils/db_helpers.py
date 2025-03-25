@@ -1,8 +1,11 @@
 from decimal import Decimal
+from uuid import UUID
 from fastapi import HTTPException
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 from app.db.models.ledger_entry_model import DBLedgerEntry
 from app.db.models.account_model import DBAccount
 
@@ -44,3 +47,16 @@ async def get_debit_credit_totals(db: AsyncSession) -> list[tuple[str, int, Deci
     )
     result = await db.execute(stmt)
     return result.all()
+
+
+async def get_account_or_raise_404(account_id: UUID, db: AsyncSession) -> DBAccount:
+    result = await db.execute(select(DBAccount).where(DBAccount.id == account_id))
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return account
+
+
+async def account_name_exists(name: str, db: AsyncSession) -> bool:
+    result = await db.execute(select(DBAccount).where(DBAccount.name == name))
+    return result.scalar_one_or_none() is not None
