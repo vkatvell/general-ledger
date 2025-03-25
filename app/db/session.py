@@ -1,7 +1,7 @@
 # app/db/session.py
 
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from app.core.config import settings
 
@@ -22,6 +22,6 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-# Declarative base class
-class Base(DeclarativeBase):
+# Declarative base class with async support
+class Base(AsyncAttrs, DeclarativeBase):
     pass
