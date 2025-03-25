@@ -2,7 +2,7 @@
 File: ledger_entry.py
 Author: Venkat Vellanki
 Created: 2024-03-24
-Last Modified: 2024-03-24
+Last Modified: 2024-03-25
 Description: SQLAlchemy model definition for LedgerEntry, representing
              debit/credit transactions with associated metadata and relationships.
 """
@@ -62,4 +62,8 @@ class DBLedgerEntry(Base):
         UniqueConstraint("idempotency_key", name="uq_ledger_entry_idempotency_key"),
     )
 
-    account: Mapped[DBAccount] = relationship(backref="entries")
+    account: Mapped[DBAccount] = relationship(back_populates="entries")
+
+    @property
+    def account_name(self) -> str:
+        return self.account.name if self.account else None

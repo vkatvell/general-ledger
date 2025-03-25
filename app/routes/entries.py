@@ -21,7 +21,7 @@ from app.services.entry_service import (
     list_entries,
     get_entry_by_id,
     update_entry,
-    soft_delete_entry,
+    delete_entry,
 )
 
 logger = logging.getLogger(__name__)
@@ -108,4 +108,4 @@ async def delete_entry_route(
     entry_id: str,
     db: AsyncSession = Depends(get_session),
 ) -> None:
-    await soft_delete_entry(entry_id, db)
+    await delete_entry(entry_id, db)

@@ -2,7 +2,7 @@
 File: account_model.py
 Author: Venkat Vellanki
 Created: 2024-03-24
-Last Modified: 2024-03-24
+Last Modified: 2024-03-25
 Description: SQLAlchemy model definition for Account entity, which holds
              user-defined account names and links to ledger entries.
 """
@@ -28,7 +28,7 @@ class DBAccount(Base):
         nullable=False,
     )
 
-    entries: Mapped[List["DBLedgerEntry"]] = relationship(back_populates="account")
+    entries: Mapped[list["DBLedgerEntry"]] = relationship(back_populates="account")
 
 
 # Avoiding circular imports
