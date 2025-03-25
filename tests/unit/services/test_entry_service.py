@@ -440,7 +440,7 @@ async def test_delete_entry_success(async_mock_db):
     )
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=entry)
+    result.scalar_one_or_none = MagicMock(return_value=entry)
 
     async_mock_db.execute = AsyncMock(return_value=result)
     async_mock_db.commit = AsyncMock()
@@ -459,7 +459,7 @@ async def test_delete_entry_not_found(async_mock_db):
     entry_id = uuid.uuid4()
 
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=None)
+    result.scalar_one_or_none = MagicMock(return_value=None)
 
     async_mock_db.execute = AsyncMock(return_value=result)
 
@@ -477,7 +477,7 @@ async def test_delete_entry_already_deleted(async_mock_db):
 
     # Simulate already deleted entry excluded by query
     result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=None)
+    result.scalar_one_or_none = MagicMock(return_value=None)
 
     async_mock_db.execute = AsyncMock(return_value=result)
 

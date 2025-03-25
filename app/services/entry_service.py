@@ -149,7 +149,7 @@ async def delete_entry(entry_id: str, db: AsyncSession) -> LedgerEntryDeletedRes
             DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
         )
     )
-    entry = await result.scalar_one_or_none()
+    entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Ledger entry not found")
 
