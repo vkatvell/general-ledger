@@ -7,7 +7,7 @@ Description: Pydantic schema for ledger summary response.
 """
 
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SummaryOut(BaseModel):
@@ -24,3 +24,5 @@ class SummaryOut(BaseModel):
     is_balanced: bool = Field(
         ..., description="True if total debits equal total credits"
     )
+
+    model_config = ConfigDict(from_attributes=True)
