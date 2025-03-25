@@ -10,8 +10,14 @@ from app.schemas.ledger_entry_schema import (
     EntryType,
     LedgerEntryOut,
     LedgerEntryUpdate,
+    LedgerEntryDeletedResponse,
 )
-from app.services.entry_service import create_entry, get_entry_by_id, update_entry
+from app.services.entry_service import (
+    create_entry,
+    get_entry_by_id,
+    update_entry,
+    delete_entry,
+)
 from app.db.models import DBAccount, DBLedgerEntry
 
 
@@ -409,3 +415,72 @@ async def test_update_entry_same_data_raises(async_mock_db):
 
     assert exc.value.status_code == 400
     assert "no changes" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_entry_success(async_mock_db):
+    entry_id = uuid.uuid4()
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    entry = DBLedgerEntry(
+        id=entry_id,
+        account_id=account.id,
+        entry_type=EntryType.debit,
+        amount=Decimal("300.00"),
+        currency="USD",
+        description="To be deleted",
+        idempotency_key=uuid.uuid4(),
+        date=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+        is_deleted=False,
+        version=1,
+        account=account,
+    )
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=entry)
+
+    async_mock_db.execute = AsyncMock(return_value=result)
+    async_mock_db.commit = AsyncMock()
+    async_mock_db.refresh = AsyncMock(side_effect=lambda e: e)
+
+    deleted = await delete_entry(str(entry_id), async_mock_db)
+
+    assert isinstance(deleted, LedgerEntryDeletedResponse)
+    assert deleted.id == entry_id
+    assert deleted.is_deleted is True
+    assert deleted.version == 2
+
+
+@pytest.mark.asyncio
+async def test_delete_entry_not_found(async_mock_db):
+    entry_id = uuid.uuid4()
+
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=None)
+
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    with pytest.raises(HTTPException) as exc:
+        await delete_entry(str(entry_id), async_mock_db)
+
+    assert exc.value.status_code == 404
+    assert "not found" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_entry_already_deleted(async_mock_db):
+    entry_id = uuid.uuid4()
+    account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
+
+    # Simulate already deleted entry excluded by query
+    result = MagicMock()
+    result.scalar_one_or_none = AsyncMock(return_value=None)
+
+    async_mock_db.execute = AsyncMock(return_value=result)
+
+    with pytest.raises(HTTPException) as exc:
+        await delete_entry(str(entry_id), async_mock_db)
+
+    assert exc.value.status_code == 404

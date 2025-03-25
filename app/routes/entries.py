@@ -15,6 +15,7 @@ from app.schemas.ledger_entry_schema import (
     LedgerEntryCreate,
     LedgerEntryUpdate,
     LedgerEntryOut,
+    LedgerEntryDeletedResponse,
 )
 from app.services.entry_service import (
     create_entry,
@@ -100,12 +101,13 @@ async def update_entry_route(
 
 @router.delete(
     "/{entry_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=LedgerEntryDeletedResponse,
+    status_code=status.HTTP_200_OK,
     summary="Delete a ledger entry",
-    description="Marks the specified ledger entry as deleted.",
+    description="Marks the specified ledger entry as deleted and returns confirmation metadata.",
 )
 async def delete_entry_route(
     entry_id: str,
     db: AsyncSession = Depends(get_session),
-) -> None:
-    await delete_entry(entry_id, db)
+) -> LedgerEntryDeletedResponse:
+    return await delete_entry(entry_id, db)

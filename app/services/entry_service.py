@@ -21,6 +21,7 @@ from app.schemas.ledger_entry_schema import (
     LedgerEntryCreate,
     LedgerEntryOut,
     LedgerEntryUpdate,
+    LedgerEntryDeletedResponse,
 )
 
 
@@ -126,14 +127,14 @@ async def update_entry(
     return LedgerEntryOut.model_validate(entry)
 
 
-async def delete_entry(entry_id: str, db: AsyncSession) -> None:
-    """Soft-delete a ledger entry by marking it as deleted."""
+async def delete_entry(entry_id: str, db: AsyncSession) -> LedgerEntryDeletedResponse:
+    """Soft-delete a ledger entry by marking it as deleted and reutrn confirmation metadata."""
     result = await db.execute(
         select(DBLedgerEntry).where(
             DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
         )
     )
-    entry = result.scalar_one_or_none()
+    entry = await result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Ledger entry not found")
 
@@ -142,6 +143,9 @@ async def delete_entry(entry_id: str, db: AsyncSession) -> None:
     entry.version += 1
 
     await db.commit()
+    await db.refresh(entry)
+
+    return LedgerEntryDeletedResponse.model_validate(entry)
 
 
 async def list_entries(

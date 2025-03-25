@@ -2,7 +2,7 @@
 File: ledger_entry_schema.py
 Author: Venkat Vellanki
 Created: 2024-03-24
-Last Modified: 2024-03-24
+Last Modified: 2024-03-25
 Description: Pydantic schema definitions for ledger entries, including models
              for creating, updating, and serializing debit and credit records
              within the general ledger system.
@@ -44,6 +44,14 @@ class LedgerEntryCreate(LedgerEntryBase):
 class LedgerEntryUpdate(BaseModel):
     amount: Optional[Decimal] = Field(None, ge=0)
     description: Optional[str] = None
+
+
+class LedgerEntryDeletedResponse(BaseModel):
+    id: UUID
+    is_deleted: bool
+    version: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LedgerEntryOut(LedgerEntryBase):
