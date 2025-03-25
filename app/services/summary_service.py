@@ -18,12 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.utils.db_helpers import get_debit_credit_totals
 from app.utils.ledger_helpers import normalize_entry_type
 
-from app.db.models import DBLedgerEntry, DBAccount
 from app.schemas.summary_schema import SummaryOut
 from app.schemas.ledger_entry_schema import EntryType
 
 
 async def get_summary(db: AsyncSession) -> SummaryOut:
+    """Return totals and counts for debits and credits, and balance status."""
     rows = await get_debit_credit_totals(db)
 
     # Set initial values
