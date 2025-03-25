@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from uuid import UUID
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -57,9 +57,17 @@ class LedgerEntryDeletedResponse(BaseModel):
 class LedgerEntryOut(LedgerEntryBase):
     id: UUID
     account_id: UUID
+    account_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
     version: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LedgerEntryListResponse(BaseModel):
+    total: int = Field(..., ge=0)
+    limit: int = Field(..., ge=1)
+    offset: int = Field(..., ge=0)
+    entries: List[LedgerEntryOut]

@@ -11,9 +11,9 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, update
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.db.models.ledger_entry_model import DBLedgerEntry
 from app.db.models.account_model import DBAccount
@@ -22,6 +22,8 @@ from app.schemas.ledger_entry_schema import (
     LedgerEntryOut,
     LedgerEntryUpdate,
     LedgerEntryDeletedResponse,
+    EntryType,
+    LedgerEntryListResponse,
 )
 
 
@@ -78,14 +80,17 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
 
 async def get_entry_by_id(entry_id: str, db: AsyncSession) -> LedgerEntryOut:
     """Fetch a single ledger entry by ID, excluding deleted records."""
-    result = await db.execute(
+    stmt = (
         select(DBLedgerEntry)
-        .options(joinedload(DBLedgerEntry.account))
+        .options(selectinload(DBLedgerEntry.account))  # needed for account_name
         .where(DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False))
     )
-    entry = await result.scalar_one_or_none()
+    result = await db.execute(stmt)
+    entry = result.scalar_one_or_none()
+
     if not entry:
         raise HTTPException(status_code=404, detail="Ledger entry not found")
+
     return LedgerEntryOut.model_validate(entry)
 
 
@@ -157,21 +162,39 @@ async def list_entries(
     end_date: str | None = None,
     limit: int = 100,
     offset: int = 0,
-) -> list[LedgerEntryOut]:
+) -> LedgerEntryListResponse:
     """Retrieve all ledger entries with optional filters."""
-    stmt = select(DBLedgerEntry).where(DBLedgerEntry.is_deleted.is_(False))
+    stmt = (
+        select(DBLedgerEntry)
+        .options(selectinload(DBLedgerEntry.account))
+        .where(DBLedgerEntry.is_deleted.is_(False))
+    )
 
+    # Case insensitive filtering
     if account_name:
-        stmt = stmt.join(DBLedgerEntry.account).where(DBAccount.name == account_name)
+        stmt = stmt.join(DBAccount).where(
+            func.lower(DBAccount.name) == account_name.lower()
+        )
     if currency:
-        stmt = stmt.where(DBLedgerEntry.currency == currency)
+        stmt = stmt.where(DBLedgerEntry.currency == currency.upper())
     if entry_type:
-        stmt = stmt.where(DBLedgerEntry.entry_type == entry_type)
+        stmt = stmt.where(DBLedgerEntry.entry_type == EntryType(entry_type))
     if start_date:
-        stmt = stmt.where(DBLedgerEntry.date >= start_date)
+        stmt = stmt.where(DBLedgerEntry.date >= datetime.fromisoformat(start_date))
     if end_date:
-        stmt = stmt.where(DBLedgerEntry.date <= end_date)
+        stmt = stmt.where(DBLedgerEntry.date <= datetime.fromisoformat(end_date))
 
+    # Get total count before applying offset/limit
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    # Apply pagination
     stmt = stmt.order_by(DBLedgerEntry.date.desc()).offset(offset).limit(limit)
     results = (await db.execute(stmt)).scalars().all()
-    return [LedgerEntryOut.model_validate(e) for e in results]
+
+    return LedgerEntryListResponse(
+        total=total,
+        limit=limit,
+        offset=offset,
+        entries=[LedgerEntryOut.model_validate(e) for e in results],
+    )

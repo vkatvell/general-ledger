@@ -11,6 +11,7 @@ from app.schemas.ledger_entry_schema import (
     LedgerEntryOut,
     LedgerEntryUpdate,
     LedgerEntryDeletedResponse,
+    LedgerEntryListResponse,
 )
 from app.services.entry_service import (
     create_entry,
@@ -159,9 +160,9 @@ async def test_get_entry_by_id_success(async_mock_db):
         account=account,
     )
 
-    result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=entry)
-    async_mock_db.execute = AsyncMock(return_value=result)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none = MagicMock(return_value=entry)
+    async_mock_db.execute = AsyncMock(return_value=mock_result)
 
     response = await get_entry_by_id(str(entry_id), async_mock_db)
 
@@ -175,9 +176,9 @@ async def test_get_entry_by_id_success(async_mock_db):
 async def test_get_entry_by_id_not_found(async_mock_db):
     entry_id = uuid.uuid4()
 
-    result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(return_value=None)
-    async_mock_db.execute = AsyncMock(return_value=result)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none = MagicMock(return_value=None)
+    async_mock_db.execute = AsyncMock(return_value=mock_result)
 
     with pytest.raises(HTTPException) as exc:
         await get_entry_by_id(str(entry_id), async_mock_db)
@@ -207,11 +208,10 @@ async def test_get_entry_by_id_soft_deleted(async_mock_db):
         account=account,
     )
 
-    result = MagicMock()
-    result.scalar_one_or_none = AsyncMock(
-        return_value=None
-    )  # simulate exclusion from query
-    async_mock_db.execute = AsyncMock(return_value=result)
+    mock_result = MagicMock()
+    # Simulating no entry returned
+    mock_result.scalar_one_or_none = MagicMock(return_value=None)
+    async_mock_db.execute = AsyncMock(return_value=mock_result)
 
     with pytest.raises(HTTPException) as exc:
         await get_entry_by_id(str(entry_id), async_mock_db)
@@ -507,11 +507,17 @@ async def test_list_entries_basic(async_mock_db):
         account=account,
     )
 
-    mock_result = MagicMock()
-    mock_result.scalars = MagicMock(
-        return_value=MagicMock(all=MagicMock(return_value=[entry]))
+    # Mock count first, then entries
+    async_mock_db.execute = AsyncMock(
+        side_effect=[
+            MagicMock(scalar_one=MagicMock(return_value=1)),  # count
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(all=MagicMock(return_value=[entry]))
+                )
+            ),  # entries
+        ]
     )
-    async_mock_db.execute = AsyncMock(return_value=mock_result)
 
     entries = await list_entries(
         db=async_mock_db,
@@ -524,26 +530,33 @@ async def test_list_entries_basic(async_mock_db):
         offset=0,
     )
 
-    assert isinstance(entries, list)
-    assert len(entries) == 1
-    assert entries[0].account_name == "Cash"
-    assert entries[0].amount == Decimal("50.00")
+    assert isinstance(entries, LedgerEntryListResponse)
+    assert entries.total == 1
+    assert isinstance(entries.entries, list)
+    assert entries.entries[0].account_name == "Cash"
+    assert entries.entries[0].amount == Decimal("50.00")
 
 
 @pytest.mark.asyncio
 async def test_list_entries_empty_result(async_mock_db):
-    mock_result = MagicMock()
-    mock_result.scalars = MagicMock(
-        return_value=MagicMock(all=MagicMock(return_value=[]))
+    async_mock_db.execute = AsyncMock(
+        side_effect=[
+            MagicMock(scalar_one=MagicMock(return_value=0)),  # count
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(all=MagicMock(return_value=[]))
+                )
+            ),  # entries
+        ]
     )
-    async_mock_db.execute = AsyncMock(return_value=mock_result)
 
-    entries = await list_entries(
+    result = await list_entries(
         db=async_mock_db,
         account_name="Ghost",
-        currency="EUR",
+        currency="USD",
         entry_type="credit",
     )
 
-    assert isinstance(entries, list)
-    assert entries == []
+    assert isinstance(result, LedgerEntryListResponse)
+    assert result.total == 0
+    assert result.entries == []

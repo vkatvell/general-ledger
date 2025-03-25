@@ -7,6 +7,7 @@ Description: Handles creation, retrieval, update, and deletion of ledger entries
 """
 
 import logging
+from typing import Optional
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,7 @@ from app.schemas.ledger_entry_schema import (
     LedgerEntryUpdate,
     LedgerEntryOut,
     LedgerEntryDeletedResponse,
+    LedgerEntryListResponse,
 )
 from app.services.entry_service import (
     create_entry,
@@ -46,20 +48,20 @@ async def create_entry_route(
 
 @router.get(
     "/",
-    response_model=list[LedgerEntryOut],
+    response_model=LedgerEntryListResponse,
     summary="List all ledger entries",
     description="Retrieves all ledger entries, optionally filtered by account name, entry type, currency, or date range.",
 )
 async def list_entries_route(
-    account_name: str | None = Query(default=None),
-    currency: str | None = Query(default=None),
-    entry_type: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
+    account_name: Optional[str] = Query(default=None),
+    currency: Optional[str] = Query(default=None),
+    entry_type: Optional[str] = Query(default=None),
+    start_date: Optional[str] = Query(default=None),
+    end_date: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_session),
-) -> list[LedgerEntryOut]:
+) -> LedgerEntryListResponse:
     return await list_entries(
         db=db,
         account_name=account_name,
