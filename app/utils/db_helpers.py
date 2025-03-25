@@ -1,5 +1,6 @@
+from decimal import Decimal
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.db.models.ledger_entry_model import DBLedgerEntry
@@ -27,3 +28,19 @@ async def get_active_account_by_name(name: str, db: AsyncSession) -> DBAccount:
     if not account:
         raise HTTPException(status_code=404, detail="Account not found or inactive")
     return account
+
+
+async def get_debit_credit_totals(db: AsyncSession) -> list[tuple[str, int, Decimal]]:
+    stmt = (
+        select(
+            DBLedgerEntry.entry_type,
+            func.count().label("count"),
+            func.coalesce(func.sum(DBLedgerEntry.amount), Decimal("0.00")).label(
+                "total"
+            ),
+        )
+        .where(DBLedgerEntry.is_deleted.is_(False))
+        .group_by(DBLedgerEntry.entry_type)
+    )
+    result = await db.execute(stmt)
+    return result.all()
