@@ -24,8 +24,8 @@ async def get_usd_to_cad_rate() -> float:
     """Fetch latest available USD → CAD exchange rate from the Treasury API."""
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(TREASURY_URL)
-        await response.raise_for_status()
-        data = await response.json()
+        response.raise_for_status()
+        data = response.json()
 
     try:
         rate_str = data["data"][0]["exchange_rate"]

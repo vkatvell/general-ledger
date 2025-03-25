@@ -68,6 +68,10 @@ class LedgerEntryOut(LedgerEntryBase):
     updated_at: datetime
     is_deleted: bool
     version: int
+    canadian_amount: Optional[Decimal] = Field(
+        None,
+        description="Amount converted to Canadian Dollars using latest Treasury rate",
+    )
 
     model_config = ConfigDict(from_attributes=True)
 

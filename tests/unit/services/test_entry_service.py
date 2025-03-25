@@ -2,7 +2,7 @@ import pytest
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi import HTTPException
 from app.schemas.ledger_entry_schema import (
@@ -23,6 +23,7 @@ from app.services.entry_service import (
 from app.db.models import DBAccount, DBLedgerEntry
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_create_entry_success(async_mock_db):
     entry = LedgerEntryCreate(
@@ -69,6 +70,7 @@ async def test_create_entry_success(async_mock_db):
     assert result.account_name == "Cash"
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_create_entry_account_missing(async_mock_db):
     entry = LedgerEntryCreate(
@@ -92,6 +94,7 @@ async def test_create_entry_account_missing(async_mock_db):
     assert "Account not found" in exc.value.detail
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_create_entry_idempotent_conflict(async_mock_db):
     key = str(uuid.uuid4())
@@ -139,6 +142,7 @@ async def test_create_entry_idempotent_conflict(async_mock_db):
     assert "Idempotency key already used" in exc.value.detail
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_get_entry_by_id_success(async_mock_db):
     account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
@@ -172,6 +176,7 @@ async def test_get_entry_by_id_success(async_mock_db):
     assert response.amount == Decimal("100.00")
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_get_entry_by_id_not_found(async_mock_db):
     entry_id = uuid.uuid4()
@@ -187,6 +192,7 @@ async def test_get_entry_by_id_not_found(async_mock_db):
     assert "not found" in exc.value.detail.lower()
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_get_entry_by_id_soft_deleted(async_mock_db):
     account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
@@ -219,6 +225,7 @@ async def test_get_entry_by_id_soft_deleted(async_mock_db):
     assert exc.value.status_code == 404
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_update_entry_success_amount_and_description(async_mock_db):
     entry_id = uuid.uuid4()
@@ -259,6 +266,7 @@ async def test_update_entry_success_amount_and_description(async_mock_db):
     assert updated.account_name == "Cash"
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_update_entry_partial_description_only(async_mock_db):
     entry_id = uuid.uuid4()
@@ -298,6 +306,7 @@ async def test_update_entry_partial_description_only(async_mock_db):
     assert updated.version == 2
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_update_entry_not_found(async_mock_db):
     entry_id = uuid.uuid4()
@@ -314,6 +323,7 @@ async def test_update_entry_not_found(async_mock_db):
     assert exc.value.status_code == 404
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_update_entry_soft_deleted_excluded(async_mock_db):
     entry_id = uuid.uuid4()
@@ -347,6 +357,7 @@ async def test_update_entry_soft_deleted_excluded(async_mock_db):
     assert exc.value.status_code == 404
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_update_entry_no_changes_provided(async_mock_db):
     entry_id = uuid.uuid4()
@@ -381,6 +392,7 @@ async def test_update_entry_no_changes_provided(async_mock_db):
     assert "no fields" in exc.value.detail.lower()
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_update_entry_same_data_raises(async_mock_db):
     entry_id = uuid.uuid4()
@@ -487,6 +499,7 @@ async def test_delete_entry_already_deleted(async_mock_db):
     assert exc.value.status_code == 404
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_list_entries_basic(async_mock_db):
     account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
@@ -537,6 +550,7 @@ async def test_list_entries_basic(async_mock_db):
     assert entries.entries[0].amount == Decimal("50.00")
 
 
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
 async def test_list_entries_empty_result(async_mock_db):
     async_mock_db.execute = AsyncMock(

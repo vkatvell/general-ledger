@@ -8,13 +8,14 @@ Description: Service functions for creating, retrieving, updating, and deleting 
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from uuid import UUID
+from typing import List
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 
+from app.utils.currency import get_usd_to_cad_rate
 from app.db.models.ledger_entry_model import DBLedgerEntry
 from app.db.models.account_model import DBAccount
 from app.schemas.ledger_entry_schema import (
@@ -75,7 +76,12 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
     db.add(new_entry)
     await db.commit()
     await db.refresh(new_entry)
-    return LedgerEntryOut.model_validate(new_entry)
+
+    # Injecting USD -> CAD conversion
+    usd_entry = LedgerEntryOut.model_validate(new_entry)
+    usd_to_cad = await get_usd_to_cad_rate()
+    usd_entry.canadian_amount = round(usd_entry.amount * Decimal(usd_to_cad), 2)
+    return usd_entry
 
 
 async def get_entry_by_id(entry_id: str, db: AsyncSession) -> LedgerEntryOut:
@@ -93,7 +99,10 @@ async def get_entry_by_id(entry_id: str, db: AsyncSession) -> LedgerEntryOut:
     if not entry:
         raise HTTPException(status_code=404, detail="Ledger entry not found")
 
-    return LedgerEntryOut.model_validate(entry)
+    usd_entry = LedgerEntryOut.model_validate(entry)
+    usd_to_cad = await get_usd_to_cad_rate()
+    usd_entry.canadian_amount = round(usd_entry.amount * Decimal(usd_to_cad), 2)
+    return usd_entry
 
 
 async def update_entry(
@@ -139,7 +148,12 @@ async def update_entry(
 
     await db.commit()
     await db.refresh(entry)
-    return LedgerEntryOut.model_validate(entry)
+
+    # Injecting USD -> CAD conversion
+    usd_entry = LedgerEntryOut.model_validate(entry)
+    usd_to_cad = await get_usd_to_cad_rate()
+    usd_entry.canadian_amount = round(usd_entry.amount * Decimal(usd_to_cad), 2)
+    return usd_entry
 
 
 async def delete_entry(entry_id: str, db: AsyncSession) -> LedgerEntryDeletedResponse:
@@ -202,9 +216,15 @@ async def list_entries(
     stmt = stmt.order_by(DBLedgerEntry.date.desc()).offset(offset).limit(limit)
     results = (await db.execute(stmt)).scalars().all()
 
+    # Fetch USD -> CAD exchange rate
+    usd_to_cad = await get_usd_to_cad_rate()
+
+    # Inject canadian_amount in each response object
+    entries: List[LedgerEntryOut] = []
+    for e in results:
+        validated = LedgerEntryOut.model_validate(e)
+        validated.canadian_amount = round(validated.amount * Decimal(usd_to_cad), 2)
+        entries.append(validated)
     return LedgerEntryListResponse(
-        total=total,
-        limit=limit,
-        offset=offset,
-        entries=[LedgerEntryOut.model_validate(e) for e in results],
+        total=total, limit=limit, offset=offset, entries=entries
     )
