@@ -16,8 +16,8 @@ async def lifespan(app: FastAPI):
     """Manages application startup and shutdown events."""
     # Startup: create tables
     logging.info("Starting up... Creating DB tables if needed.")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # async with engine.begin() as conn:
+    #     await conn.run_sync(Base.metadata.create_all)
     yield
     logging.info("Shutting down... Lifespan complete.")
 
