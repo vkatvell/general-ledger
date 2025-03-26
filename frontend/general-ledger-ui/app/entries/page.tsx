@@ -173,11 +173,23 @@ export default function EntriesPage() {
     </div>
   </div>
 
-  {/* Entries Table */}
+  {/* Entries Table with Skeleton Loading */}
   {loading ? (
-    <Skeleton className="h-64 w-full rounded-md" />
-  ) : (
-    <EntryTable entries={entries} onRefresh={fetchEntries} />
+  <div className="space-y-2 rounded-md border p-4">
+    {/* Skeleton loading rows */}
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} className="flex items-center justify-between py-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-36" />
+      </div>
+    ))}
+  </div>
+) : (
+  <EntryTable entries={entries} onRefresh={fetchEntries} />
   )}
 </div>
   )
