@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { CreateAccountDialog } from "@/components/accounts/CreateAccountDialog"
+
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -40,8 +42,8 @@ export default function AccountsPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Accounts</h1>
-        {/* Optional: add create dialog here */}
-      </div>
+        <CreateAccountDialog onSuccess={fetchAccounts} />
+      </div> 
 
       <Card>
         <CardContent className="p-4 space-y-4">

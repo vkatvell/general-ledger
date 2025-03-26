@@ -92,10 +92,17 @@ export function EntryForm({ onClose, onSuccess }: Props ){
           idempotency_key: uuidv4(),
         }),
       })
-      if (!response.ok) throw new Error("Failed to create entry")
+      const resData = await response.json()
 
+      if (!response.ok) {
+        toast.info("Unable to Create Entry", {
+          description: resData.detail || "Something went wrong.",
+        })
+        return
+      }
+  
       toast.success("Entry Created", {
-          description: "Your new ledger entry was added successfully.",
+        description: "Your new ledger entry was added successfully.",
       })
 
       form.reset()
@@ -103,11 +110,7 @@ export function EntryForm({ onClose, onSuccess }: Props ){
 
       // Close dialog
       if (onClose) onClose()
-
       if (onSuccess) onSuccess()
-
-      // Optionally refresh UI
-      router.refresh()
     } catch (err) {
       toast.error("Unable to Create Entry", {
         description: (err as Error).message,
