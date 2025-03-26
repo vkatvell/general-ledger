@@ -1,0 +1,16 @@
+import { useEffect, useState } from "react"
+
+/**
+ * Returns a debounced version of the given value after the specified delay.
+ * Good for preventing excessive fetches from typing.
+ */
+export function useDebounce<T>(value: T, delay: number = 1000): T {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+
+  return debouncedValue
+}
