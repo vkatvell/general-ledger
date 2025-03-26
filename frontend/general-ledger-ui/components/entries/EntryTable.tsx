@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
+import { UpdateEntryDialog } from "./UpdateEntryDialog"
 import {
   Table,
   TableBody,
@@ -25,18 +27,15 @@ type TLedgerEntryList = {
   canadian_amount: string
 }
 
-export function EntryTable() {
-  const [entries, setEntries] = useState<TLedgerEntryList[]>([])
+type Props = {
+  entries: TLedgerEntryList[]
+  onRefresh?: () => void
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await fetch("http://localhost:8000/api/entries")
-      const data = await res.json()
-      setEntries(data.entries)
-    }
-
-    fetchData().catch(console.error)
-  }, [])
+export function EntryTable({ entries, onRefresh }: Props) {
+  if (!entries || entries.length === 0) {
+    return <p className="text-muted-foreground">No entries found.</p>
+  }
 
   return (
     <Card>
@@ -71,6 +70,9 @@ export function EntryTable() {
                   {Number(entry.canadian_amount).toFixed(2)}
                 </TableCell>
                 <TableCell>{entry.description}</TableCell>
+                <TableCell>
+                  <UpdateEntryDialog entryId={entry.id} onSuccess={onRefresh}/>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
