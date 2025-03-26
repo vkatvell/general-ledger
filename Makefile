@@ -3,10 +3,15 @@
 include .env
 export
 
-# Start FastAPI app with hot reload
-dev:
-	uvicorn app.main:app --reload
+# Start FastAPI app with hot reload and Next.js UI
+dev-backend:
+	@echo "Starting backend..."
+	(uvicorn app.main:app --reload)
 
+# Start Next.js UI app
+dev-frontend:
+	@echo "Starting frontend..."
+	(cd frontend/general-ledger-ui && npm run dev)
 # Run pre-commit hooks
 lint:
 	pre-commit run --all-files
