@@ -1,3 +1,13 @@
+"""
+File: ledger_helpers.py
+Author: Venkat Vellanki
+Created: 2025-03-25
+Last Modified: 2025-03-25
+Description: Helper functions related to ledger logic, including CAD conversion
+             injection and aggregation logic for summaries. Used by entry and
+             summary services to enforce consistency.
+"""
+
 from decimal import Decimal
 from app.utils.currency import get_usd_to_cad_rate
 from app.schemas.ledger_entry_schema import LedgerEntryOut, EntryType
