@@ -1,11 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CreateAccountDialog } from "@/components/accounts/CreateAccountDialog"
+import { UpdateAccountDialog } from "@/components/accounts/UpdateAccountDialog"
 
-import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
@@ -59,13 +58,11 @@ export default function AccountsPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Label htmlFor={`active-${account.id}`}>Active</Label>
-                <Switch
-                  id={`active-${account.id}`}
-                  checked={account.is_active}
-                  onCheckedChange={() =>
-                    handleToggle(account.id, account.is_active)
-                  }
+              <UpdateAccountDialog
+                accountId={account.id}
+                currentName={account.name}
+                isActive={account.is_active}
+                onSuccess={fetchAccounts}
                 />
               </div>
             </div>
