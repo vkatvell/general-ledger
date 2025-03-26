@@ -2,7 +2,7 @@
 File: db_helpers.py
 Author: Venkat Vellanki
 Created: 2025-03-25
-Last Modified: 2025-03-25
+Last Modified: 2025-03-26
 Description: Shared database utility functions for fetching and validating
              accounts and ledger entries. Centralizes reusable query logic
              used across service layers.
