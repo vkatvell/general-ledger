@@ -15,7 +15,8 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.utils.currency import get_usd_to_cad_rate
+from app.utils.ledger_helpers import inject_cad_amount, get_usd_to_cad_rate
+from app.utils.db_helpers import get_entry_or_raise_404, get_active_account_by_name
 from app.db.models.ledger_entry_model import DBLedgerEntry
 from app.db.models.account_model import DBAccount
 from app.schemas.ledger_entry_schema import (
@@ -31,14 +32,7 @@ from app.schemas.ledger_entry_schema import (
 async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntryOut:
     """Create a new ledger entry after validating account and input rules."""
     # Validate account
-    result = await db.execute(
-        select(DBAccount).where(
-            DBAccount.name == entry.account_name, DBAccount.is_active.is_(True)
-        )
-    )
-    account = result.scalar_one_or_none()
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found or inactive")
+    account = await get_active_account_by_name(entry.account_name, db)
 
     # Check idempotency key: if an entry with same key already exists
     existing = await db.execute(
@@ -77,31 +71,16 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
     await db.commit()
     await db.refresh(new_entry)
 
-    # Injecting USD -> CAD conversion
-    usd_entry = LedgerEntryOut.model_validate(new_entry)
-    usd_to_cad = await get_usd_to_cad_rate()
-    usd_entry.canadian_amount = round(usd_entry.amount * Decimal(usd_to_cad), 2)
+    # Injecting USD -> CAD conversion into entry
+    usd_entry = await inject_cad_amount(new_entry)
     return usd_entry
 
 
 async def get_entry_by_id(entry_id: str, db: AsyncSession) -> LedgerEntryOut:
     """Fetch a single ledger entry by ID, excluding deleted records."""
-    stmt = (
-        select(DBLedgerEntry)
-        .options(
-            selectinload(DBLedgerEntry.account)
-        )  # eager loading needed for account_name
-        .where(DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False))
-    )
-    result = await db.execute(stmt)
-    entry = result.scalar_one_or_none()
-
-    if not entry:
-        raise HTTPException(status_code=404, detail="Ledger entry not found")
-
-    usd_entry = LedgerEntryOut.model_validate(entry)
-    usd_to_cad = await get_usd_to_cad_rate()
-    usd_entry.canadian_amount = round(usd_entry.amount * Decimal(usd_to_cad), 2)
+    entry = await get_entry_or_raise_404(entry_id, db)
+    # Injecting USD -> CAD conversion into entry
+    usd_entry = await inject_cad_amount(entry)
     return usd_entry
 
 
@@ -112,17 +91,7 @@ async def update_entry(
     if update.amount is None and update.description is None:
         raise HTTPException(status_code=400, detail="No fields provided to update")
 
-    stmt = (
-        select(DBLedgerEntry)
-        .options(
-            selectinload(DBLedgerEntry.account)
-        )  # eager loading needed for account_name
-        .where(DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False))
-    )
-    result = await db.execute(stmt)
-    entry = result.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Ledger entry not found")
+    entry = await get_entry_or_raise_404(entry_id, db)
 
     # Check if any actual change is being made
     changes_detected = False
@@ -149,23 +118,14 @@ async def update_entry(
     await db.commit()
     await db.refresh(entry)
 
-    # Injecting USD -> CAD conversion
-    usd_entry = LedgerEntryOut.model_validate(entry)
-    usd_to_cad = await get_usd_to_cad_rate()
-    usd_entry.canadian_amount = round(usd_entry.amount * Decimal(usd_to_cad), 2)
+    # Injecting USD -> CAD conversion into entry
+    usd_entry = await inject_cad_amount(entry)
     return usd_entry
 
 
 async def delete_entry(entry_id: str, db: AsyncSession) -> LedgerEntryDeletedResponse:
     """Soft-delete a ledger entry by marking it as deleted and reutrn confirmation metadata."""
-    result = await db.execute(
-        select(DBLedgerEntry).where(
-            DBLedgerEntry.id == entry_id, DBLedgerEntry.is_deleted.is_(False)
-        )
-    )
-    entry = result.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Ledger entry not found")
+    entry = await get_entry_or_raise_404(entry_id, db)
 
     entry.is_deleted = True
     entry.updated_at = datetime.now(timezone.utc)

@@ -15,26 +15,16 @@ from datetime import datetime
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import DBLedgerEntry, DBAccount
+from app.utils.db_helpers import get_debit_credit_totals
+from app.utils.ledger_helpers import normalize_entry_type
+
 from app.schemas.summary_schema import SummaryOut
 from app.schemas.ledger_entry_schema import EntryType
 
 
 async def get_summary(db: AsyncSession) -> SummaryOut:
-    stmt = (
-        select(
-            DBLedgerEntry.entry_type,
-            func.count().label("count"),
-            func.coalesce(func.sum(DBLedgerEntry.amount), Decimal("0.00")).label(
-                "total"
-            ),
-        )
-        .where(DBLedgerEntry.is_deleted.is_(False))
-        .group_by(DBLedgerEntry.entry_type)
-    )
-
-    result = await db.execute(stmt)
-    rows = result.all()
+    """Return totals and counts for debits and credits, and balance status."""
+    rows = await get_debit_credit_totals(db)
 
     # Set initial values
     num_debits = 0
@@ -42,9 +32,9 @@ async def get_summary(db: AsyncSession) -> SummaryOut:
     num_credits = 0
     total_credit_amount = Decimal("0.00")
 
+    # Handling different enum type in memory by collapsing into value
     for entry_type, count, total in rows:
-        # Handling different enum type in memory by collapsing into value
-        et = getattr(entry_type, "value", entry_type)
+        et = normalize_entry_type(entry_type)
 
         if et == EntryType.debit.value:
             num_debits = count
@@ -53,12 +43,10 @@ async def get_summary(db: AsyncSession) -> SummaryOut:
             num_credits = count
             total_credit_amount = total
 
-    is_balanced = total_debit_amount == total_credit_amount
-
     return SummaryOut(
         num_debits=num_debits,
         total_debit_amount=total_debit_amount,
         num_credits=num_credits,
         total_credit_amount=total_credit_amount,
-        is_balanced=is_balanced,
+        is_balanced=(total_debit_amount == total_credit_amount),
     )

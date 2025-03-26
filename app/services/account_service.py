@@ -18,13 +18,12 @@ from app.schemas.account_schema import (
     AccountOut,
     AccountListResponse,
 )
+from app.utils.db_helpers import get_account_or_raise_404, account_name_exists
 
 
 async def create_account(account: AccountCreate, db: AsyncSession) -> AccountOut:
     """Create a new account with the given name."""
-    # Check if account name already exists
-    result = await db.execute(select(DBAccount).where(DBAccount.name == account.name))
-    if result.scalar_one_or_none():
+    if await account_name_exists(account.name, db):
         raise HTTPException(status_code=400, detail="Account name already exists")
 
     new_account = DBAccount(name=account.name, is_active=account.is_active)
@@ -38,12 +37,7 @@ async def update_account(
     account_id: UUID, update: AccountUpdate, db: AsyncSession
 ) -> AccountOut:
     """Update an existing account's name or active status."""
-    stmt = select(DBAccount).where(DBAccount.id == account_id)
-    result = await db.execute(stmt)
-    account = result.scalar_one_or_none()
-
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
+    account = await get_account_or_raise_404(account_id, db)
 
     if update.name:
         account.name = update.name
