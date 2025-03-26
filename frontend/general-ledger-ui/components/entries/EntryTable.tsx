@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 
 import { UpdateEntryDialog } from "./UpdateEntryDialog"
+import { ViewEntryDialog } from "./ViewEntryDialog"
+import { DeleteEntryDialog } from "./DeleteEntryDialog"
 import {
   Table,
   TableBody,
@@ -50,6 +52,7 @@ export function EntryTable({ entries, onRefresh }: Props) {
               <TableHead>Currency</TableHead>
               <TableHead className="text-right">CAD $</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -70,8 +73,10 @@ export function EntryTable({ entries, onRefresh }: Props) {
                   {Number(entry.canadian_amount).toFixed(2)}
                 </TableCell>
                 <TableCell>{entry.description}</TableCell>
-                <TableCell>
-                  <UpdateEntryDialog entryId={entry.id} onSuccess={onRefresh}/>
+                <TableCell className="flex gap-2">
+                  <ViewEntryDialog entryId={entry.id} />
+                  <UpdateEntryDialog entryId={entry.id} onSuccess={onRefresh} />
+                  <DeleteEntryDialog entryId={entry.id} onSuccess={onRefresh} />
                 </TableCell>
               </TableRow>
             ))}
