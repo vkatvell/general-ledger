@@ -1,7 +1,7 @@
 import pytest
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi import HTTPException
 from app.schemas.account_schema import (
@@ -29,7 +29,7 @@ async def test_create_account_success(async_mock_db):
     mock_result.scalar_one_or_none = MagicMock(return_value=None)
     async_mock_db.execute = AsyncMock(return_value=mock_result)
 
-    async_mock_db.add = AsyncMock()
+    async_mock_db.add = MagicMock()
     async_mock_db.commit = AsyncMock()
     async_mock_db.refresh = AsyncMock()
 
@@ -54,7 +54,13 @@ async def test_create_account_duplicate_name(async_mock_db):
 
     # Simulate existing account found
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none = MagicMock(return_value=DBAccount(name="Cash"))
+    existing = DBAccount(
+        id=uuid.uuid4(),
+        name="Cash",
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+    )
+    mock_result.scalar_one_or_none.return_value = existing
     async_mock_db.execute = AsyncMock(return_value=mock_result)
 
     with pytest.raises(HTTPException) as exc:
@@ -64,6 +70,10 @@ async def test_create_account_duplicate_name(async_mock_db):
     assert "already exists" in exc.value.detail.lower()
 
 
+@patch(
+    "app.services.account_service.account_name_exists",
+    return_value=False,
+)
 @pytest.mark.asyncio
 async def test_update_account_success(async_mock_db):
     account_id = uuid.uuid4()
