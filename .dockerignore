@@ -19,8 +19,21 @@ venv/
 .vscode/
 .idea/
 
-# Ignore frontend (not needed in backend image)
-frontend/
+# Ignore frontend build artifacts globally
+frontend/node_modules
+frontend/.next
+frontend/dist
+
+Dockerfile
+.dockerignore
+frontend/node_modules
+frontend/npm-debug.log
+README.md
+frontend/.next
+frontend/!.next/static
+frontend/!.next/standalone
+frontend/.git
+
 
 # Ignore test output or coverage
 *.log

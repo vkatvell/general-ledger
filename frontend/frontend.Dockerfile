@@ -1,18 +1,15 @@
 # frontend.Dockerfile
-FROM node:18
+FROM node:22.13.0-slim
 
-# Set working directory
+
 WORKDIR /app
 
-# Copy package files and install dependencies
 COPY package.json package-lock.json* ./
-RUN npm install
-
-# Copy frontend source code
+RUN npm ci
+RUN npm install --platform=linux --arch=x64 @tailwindcss/postcss
+RUN npm install lightningcss
 COPY . .
 
-# Expose default Next.js port
 EXPOSE 3000
 
-# Run Next.js development server
 CMD ["npm", "run", "dev"]
