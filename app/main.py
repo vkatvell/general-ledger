@@ -92,6 +92,12 @@ async def test_db(session: AsyncSession = Depends(get_session)):
         return {"error": f"Failed to connect to database: {str(e)}"}
 
 
-@app.get("/sentry-debug")
+@app.get(
+    "/sentry-debug",
+    tags=["Sentry Debugging"],
+    summary="Test Sentry.io integration",
+    description="Only works if SENTRY_DSN specified in .env file",
+)
 async def trigger_error():
+    """Check if Sentry.io integration is working (only works with SENTRY_DSN specified in .env)"""
     division_by_zero = 1 / 0
