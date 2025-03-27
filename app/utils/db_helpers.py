@@ -2,7 +2,7 @@
 File: db_helpers.py
 Author: Venkat Vellanki
 Created: 2025-03-25
-Last Modified: 2025-03-25
+Last Modified: 2025-03-26
 Description: Shared database utility functions for fetching and validating
              accounts and ledger entries. Centralizes reusable query logic
              used across service layers.
@@ -75,3 +75,9 @@ async def get_active_account_by_name(name: str, db: AsyncSession) -> DBAccount:
     if not account:
         raise HTTPException(status_code=404, detail="Account not found or inactive")
     return account
+
+
+async def get_account_by_name(name: str, db: AsyncSession) -> DBAccount | None:
+    """Fetch any account by name regardless of is_active status."""
+    result = await db.execute(select(DBAccount).where(DBAccount.name == name))
+    return result.scalar_one_or_none()

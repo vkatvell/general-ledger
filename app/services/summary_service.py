@@ -2,11 +2,10 @@
 File: summary_service.py
 Author: Venkat Vellanki
 Created: 2025-03-25
-Last Modified: 2025-03-25
+Last Modified: 2025-03-26
 Description: Service functions for retreiving summary of balances for all ledger entries.
 """
 
-import logging
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -21,10 +20,22 @@ from app.utils.ledger_helpers import normalize_entry_type
 from app.schemas.summary_schema import SummaryOut
 from app.schemas.ledger_entry_schema import EntryType
 
+import logging
+from sentry_sdk import capture_exception
+
+logger = logging.getLogger(__name__)
+
 
 async def get_summary(db: AsyncSession) -> SummaryOut:
     """Return totals and counts for debits and credits, and balance status."""
-    rows = await get_debit_credit_totals(db)
+    logger.info("Generating ledger summary")
+
+    try:
+        rows = await get_debit_credit_totals(db)
+    except Exception as e:
+        logger.error("Failed to fetch debit/credit totals")
+        capture_exception(e)
+        raise
 
     # Set initial values
     num_debits = 0

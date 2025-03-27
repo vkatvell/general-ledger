@@ -2,7 +2,7 @@
 File: entry_service.py
 Author: Venkat Vellanki
 Created: 2025-03-25
-Last Modified: 2025-03-25
+Last Modified: 2025-03-26
 Description: Service functions for creating, retrieving, updating, and deleting ledger entries.
 """
 
@@ -27,10 +27,15 @@ from app.schemas.ledger_entry_schema import (
     EntryType,
     LedgerEntryListResponse,
 )
+from sentry_sdk import capture_message
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntryOut:
     """Create a new ledger entry after validating account and input rules."""
+    logger.info("Creating ledger entry with idempotency_key=%s", entry.idempotency_key)
     # Validate account
     account = await get_active_account_by_name(entry.account_name, db)
 
@@ -51,10 +56,14 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
             or existing_entry.currency != entry.currency
             or (existing_entry.description or "") != (entry.description or "")
         ):
+            capture_message(
+                f"Idempotency conflict: key={entry.idempotency_key}", level="warning"
+            )
             raise HTTPException(
                 status_code=409,  # Conflict status code
                 detail="Idempotency key already used with different data",
             )
+        logger.info("Idempotency match found. Returning existing entry.")
         return LedgerEntryOut.model_validate(existing_entry)
 
     # Create DB object
@@ -73,6 +82,9 @@ async def create_entry(entry: LedgerEntryCreate, db: AsyncSession) -> LedgerEntr
 
     # Injecting USD -> CAD conversion into entry
     usd_entry = await inject_cad_amount(new_entry)
+    logger.info(
+        "Ledger entry created successfully: idempotency_key=%s", entry.idempotency_key
+    )
     return usd_entry
 
 
@@ -105,6 +117,7 @@ async def update_entry(
         changes_detected = True
 
     if not changes_detected:
+        capture_message(f"No changes detected in update", level="warning")
         raise HTTPException(status_code=400, detail="No changes detected in update")
 
     # Apply changes
@@ -118,6 +131,8 @@ async def update_entry(
     await db.commit()
     await db.refresh(entry)
 
+    logger.info("Successfully updated entry_id=%s", entry_id)
+
     # Injecting USD -> CAD conversion into entry
     usd_entry = await inject_cad_amount(entry)
     return usd_entry
@@ -125,6 +140,8 @@ async def update_entry(
 
 async def delete_entry(entry_id: str, db: AsyncSession) -> LedgerEntryDeletedResponse:
     """Soft-delete a ledger entry by marking it as deleted and reutrn confirmation metadata."""
+    logger.info("Attempting to delete entry_id=%s", entry_id)
+
     entry = await get_entry_or_raise_404(entry_id, db)
 
     entry.is_deleted = True
@@ -134,6 +151,7 @@ async def delete_entry(entry_id: str, db: AsyncSession) -> LedgerEntryDeletedRes
     await db.commit()
     await db.refresh(entry)
 
+    logger.info("Successfully soft-deleted entry_id=%s", entry_id)
     return LedgerEntryDeletedResponse.model_validate(entry)
 
 
@@ -163,10 +181,14 @@ async def list_entries(
         stmt = stmt.where(DBLedgerEntry.currency == currency.upper())
     if entry_type:
         stmt = stmt.where(DBLedgerEntry.entry_type == EntryType(entry_type))
-    if start_date:
-        stmt = stmt.where(DBLedgerEntry.date >= datetime.fromisoformat(start_date))
-    if end_date:
-        stmt = stmt.where(DBLedgerEntry.date <= datetime.fromisoformat(end_date))
+    try:
+        if start_date:
+            stmt = stmt.where(DBLedgerEntry.date >= datetime.fromisoformat(start_date))
+        if end_date:
+            stmt = stmt.where(DBLedgerEntry.date <= datetime.fromisoformat(end_date))
+    except ValueError as e:
+        capture_message(f"{e}", level="warning")
+        raise HTTPException(status_code=400, detail="Invalid date format")
 
     # Get total count before applying offset/limit
     count_stmt = select(func.count()).select_from(stmt.subquery())

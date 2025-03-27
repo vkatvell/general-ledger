@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     postgres_host: str
     postgres_port: int
 
+    # Other settings
+    sentry_dsn: str = ""  # Optional if Sentry is configured to capture logs
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property
