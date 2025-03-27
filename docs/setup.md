@@ -1,23 +1,20 @@
-- # Setup Guide for General Ledger Project
+# Setup Guide for General Ledger Project
   
   This guide walks through how to run the General Ledger application locally using Docker Compose.  
-  
----
-- ## Prerequisites
+
+## Prerequisites
 - [Docker](https://www.docker.com/)
 - [Docker Compose](https://docs.docker.com/compose/)
 - [`uv` (for local Python workflows)](https://github.com/astral-sh/uv) *(optional)*
   
----
-- ## 1. Clone the Repository
+## 1. Clone the Repository
   
   ```
   git clone https://github.com/vkatvell/general-ledger.git
   cd general-ledger
   ```
   
----
-- ## 2. Configure Environment Variables
+## 2. Configure Environment Variables
   
   Copy the example file:  
   
@@ -30,8 +27,7 @@
 - `DATABASE_URL`
 - (Optional) `SENTRY_DSN`
   
----
-- ## 3. Start the Application
+## 3. Start the Application
   
   ```
   docker compose up --build
@@ -42,8 +38,7 @@
 - Frontend: [http://localhost:3000](http://localhost:3000)
 - PostgreSQL: exposed on port 5434
   
----
-- ## 4. Apply Migrations & Seed Data (Optional)
+## 4. Apply Migrations & Seed Data (Optional)
   
   To apply database migrations and seed initial data:  
   
@@ -53,8 +48,7 @@
   python scripts/seed_data.py
   ```
   
----
-- ## 5. Run Tests (Optional)
+## 5. Run Tests (Optional)
   
   For local Python workflows outside Docker:  
   
@@ -64,8 +58,7 @@
   pytest tests/
   ```
   
----
-- ## 6. API Documentation
+## 6. API Documentation
   
   Once the backend is running, visit:  
   
@@ -75,8 +68,7 @@
   
   This provides interactive API docs using the OpenAPI spec.  
   
----
-- ## Docker Compose Summary
+## Docker Compose Summary
   
   ```
   version: "3.8"
