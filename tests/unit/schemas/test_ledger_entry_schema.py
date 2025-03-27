@@ -15,7 +15,7 @@ def test_valid_ledger_entry_create():
         currency="USD",
         description="Valid entry",
         date=datetime.now(timezone.utc),
-        idempotency_key=uuid.uuid4(),
+        idempotency_key=str(uuid.uuid4()),
     )
     assert entry.account_name == "Cash"
     assert entry.entry_type == EntryType.debit

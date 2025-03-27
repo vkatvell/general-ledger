@@ -110,3 +110,4 @@
 - Redis caching for expensive summary queries
 - Authentication and user-scoped ledger visibility
 - Historical exchange rate support for backdated summaries
+- Integration tests with test API and test database
