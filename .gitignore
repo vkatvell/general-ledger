@@ -3,5 +3,4 @@ __pycache__/
 .env
 .venv/
 uv-env/
-alembic.ini
 .coverage
