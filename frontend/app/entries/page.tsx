@@ -2,7 +2,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 import { EntryTable } from "@/components/entries/EntryTable"
 import { CreateEntryDialog } from "@/components/entries/CreateEntryDialog"
@@ -40,17 +40,17 @@ export default function EntriesPage() {
   const debouncedAccountName = useDebounce(accountName)
   const debouncedCurrency = useDebounce(currency)
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     try {
       setLoading(true)
-
+  
       const params = new URLSearchParams()
       if (debouncedAccountName) params.append("account_name", debouncedAccountName)
       if (debouncedCurrency) params.append("currency", debouncedCurrency)
       if (entryType) params.append("entry_type", entryType)
       if (startDate) params.append("start_date", startDate.toISOString())
       if (endDate) params.append("end_date", endDate.toISOString())
-
+  
       const res = await fetch(`http://localhost:8000/api/entries?${params.toString()}`)
       const data = await res.json()
       setEntries(data.entries)
@@ -59,7 +59,7 @@ export default function EntriesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [debouncedAccountName, debouncedCurrency, entryType, startDate, endDate])
 
   const clearFilters = () => {
     setAccountName("")
@@ -71,7 +71,7 @@ export default function EntriesPage() {
 
   useEffect(() => {
     fetchEntries()
-  }, [debouncedAccountName, debouncedCurrency, entryType, startDate, endDate])
+  }, [fetchEntries])
 
 
   return (

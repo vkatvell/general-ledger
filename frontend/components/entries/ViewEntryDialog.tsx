@@ -14,13 +14,24 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { CalendarIcon, EyeIcon } from "lucide-react"
 
+type Entry = {
+  id: string
+  amount: string
+  currency: string
+  date: string
+  description?: string
+  entry_type: string
+  account_name: string
+  version: number
+}
+
 type Props = {
   entryId: string
 }
 
 export function ViewEntryDialog({ entryId }: Props) {
   const [open, setOpen] = useState(false)
-  const [entry, setEntry] = useState<any>(null)
+  const [entry, setEntry] = useState<Entry | null>(null)
 
   useEffect(() => {
     if (!open) return
