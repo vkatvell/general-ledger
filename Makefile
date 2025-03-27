@@ -16,6 +16,10 @@ dev-frontend:
 lint:
 	pre-commit run --all-files
 
+# Run unit tests
+test:
+	uv run pytest tests
+
 # Start/Stop Postgres via Docker
 db-up:
 	docker-compose up -d
@@ -29,7 +33,10 @@ migrate:
 
 # Create new Alembic migration
 migration:
-	alembic revision --autogenerate -m "$(m)"
+	ifndef m
+		$(error You must specify a message: make migration m="Add new table")
+	endif
+		alembic revision --autogenerate -m "$(m)"
 
 # Rebuild all DB schema (dev only!)
 reset-db:
