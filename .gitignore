@@ -4,7 +4,3 @@ __pycache__/
 .venv/
 uv-env/
 alembic.ini
-
-
-# frontend ignore for now
-frontend/
