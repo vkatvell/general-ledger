@@ -1,7 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
-
 import { UpdateEntryDialog } from "./UpdateEntryDialog"
 import { ViewEntryDialog } from "./ViewEntryDialog"
 import { DeleteEntryDialog } from "./DeleteEntryDialog"

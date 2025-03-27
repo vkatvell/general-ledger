@@ -5,7 +5,6 @@ import { z } from "zod"
 import { format } from "date-fns"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useFormState } from "react-dom"
 
 import { toast } from "sonner"
 
@@ -36,7 +35,6 @@ import {
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
-import { useRouter } from "next/navigation"
 
 const entrySchema = z.object({
   account_name: z.string().min(1, "Account is required"),
@@ -58,7 +56,6 @@ export function EntryForm({ onClose, onSuccess }: Props ){
   const [accounts, setAccounts] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>()
-  const router = useRouter()
 
   const form = useForm<EntryFormData>({
     resolver: zodResolver(entrySchema),

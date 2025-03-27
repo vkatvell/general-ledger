@@ -5,9 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CreateAccountDialog } from "@/components/accounts/CreateAccountDialog"
 import { UpdateAccountDialog } from "@/components/accounts/UpdateAccountDialog"
 
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-
 type Account = {
   id: string
   name: string
@@ -28,14 +25,6 @@ export default function AccountsPage() {
     fetchAccounts()
   }, [])
 
-  const handleToggle = async (id: string, isActive: boolean) => {
-    await fetch(`http://localhost:8000/api/accounts/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active: !isActive }),
-    })
-    fetchAccounts()
-  }
 
   return (
     <div className="p-6 space-y-6">
