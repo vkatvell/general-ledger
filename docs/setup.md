@@ -23,29 +23,29 @@
   ```
   
   Edit the `.env` file with the correct values for:  
-- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
-- `DATABASE_URL`
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST=postgres`, `POSTGRES_PORT=5432`
 - (Optional) `SENTRY_DSN`
   
 ## 3. Start the Application
   
   ```
-  docker compose up --build
+  docker compose up --build -d
   ```
   
   Services:  
 - Backend: [http://localhost:8000](http://localhost:8000)
 - Frontend: [http://localhost:3000](http://localhost:3000)
 - PostgreSQL: exposed on port 5434
+- Verify if DB is connected: [http://localhost:8000/test-db](http://localhost:8000/test-db)
   
-## 4. Apply Migrations & Seed Data (Optional)
+## 4. Apply Migrations & Seed Data
   
   To apply database migrations and seed initial data:  
   
   ```
-  docker compose exec backend bash
+  docker compose exec backend sh
   alembic upgrade head
-  python scripts/seed_data.py
+  PYTHONPATH=/app uv run python scripts/seed.py --reset
   ```
   
 ## 5. Run Tests (Optional)
