@@ -1,23 +1,20 @@
-- # General Ledger – Take-Home Assignment
+# General Ledger – Take-Home Assignment
   
   **Author:** Venkat Vellanki  
   
   A containerized general ledger system built with FastAPI and Next.js. The project supports creating, updating, and summarizing ledger entries and accounts, with PostgreSQL as the database and Docker Compose for local development.  
-  
----
-- ## Tech Stack
+
+## Tech Stack
 - **Backend**: FastAPI, async SQLAlchemy, Alembic
 - **Frontend**: Next.js, TailwindCSS, ShadCN UI
 - **Database**: PostgreSQL (via Docker)
 - **Dev Tools**: Docker Compose, `uv`, pytest
+
+## Getting Started
   
----
-- ## Getting Started
-  
-  To run the project locally using Docker Compose, follow the full setup guide here: in [docs/setup.md](./docs/setup.md). 
-  
----
-- ## Project Structure
+  To run the project locally using Docker Compose, follow the full setup guide in [docs/setup.md](./docs/setup.md). 
+
+## Project Structure
   
   ```
   .
@@ -34,9 +31,8 @@
   ├── Makefile              # Development convenience commands
   └── README.md             # Project overview
   ```
-  
----
-- ## API Documentation
+
+## API Documentation
   
   Once running, visit:  
   
