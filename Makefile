@@ -20,6 +20,11 @@ lint:
 test:
 	uv run pytest tests
 
+# Run tests with coverage report
+coverage:
+	uv run coverage run -m pytest
+	uv run coverage report -m
+
 # Start/Stop Postgres via Docker
 db-up:
 	docker-compose up -d

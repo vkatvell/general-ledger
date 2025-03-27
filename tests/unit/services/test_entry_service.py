@@ -533,9 +533,9 @@ async def test_delete_entry_already_deleted(async_mock_db):
     assert exc.value.status_code == 404
 
 
-@patch("app.services.entry_service.inject_cad_amount")
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
-async def test_list_entries_basic(async_mock_db):
+async def test_list_entries_basic(mock_rate, async_mock_db):
     account = DBAccount(id=uuid.uuid4(), name="Cash", is_active=True)
 
     entry = DBLedgerEntry(
@@ -554,7 +554,7 @@ async def test_list_entries_basic(async_mock_db):
         account=account,
     )
 
-    # Mock count first, then entries
+    # Mock count and entries
     async_mock_db.execute = AsyncMock(
         side_effect=[
             MagicMock(scalar_one=MagicMock(return_value=1)),  # count
@@ -584,9 +584,9 @@ async def test_list_entries_basic(async_mock_db):
     assert entries.entries[0].amount == Decimal("50.00")
 
 
-@patch("app.services.entry_service.inject_cad_amount")
+@patch("app.services.entry_service.get_usd_to_cad_rate", return_value=1.35)
 @pytest.mark.asyncio
-async def test_list_entries_empty_result(async_mock_db):
+async def test_list_entries_empty_result(mock_rate, async_mock_db):
     async_mock_db.execute = AsyncMock(
         side_effect=[
             MagicMock(scalar_one=MagicMock(return_value=0)),  # count
